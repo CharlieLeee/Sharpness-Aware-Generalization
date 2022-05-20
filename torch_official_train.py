@@ -4,6 +4,8 @@ import torchvision.transforms as transforms
 import torch.optim as optim
 import torch.nn as nn
 from models import LinearModel, SimpleConv
+from sam.sam import SAM
+
 
 
 transform = transforms.Compose(
@@ -11,7 +13,9 @@ transform = transforms.Compose(
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 batch_size = 4
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Using device: ', device)
+
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                         download=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
@@ -24,26 +28,46 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-net = SimpleConv()
+net = SimpleConv().to(device)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+use_sam = False
 
-for epoch in range(2):  # loop over the dataset multiple times
+if use_sam:
+    base_optimizer = torch.optim.SGD  # define an optimizer for the "sharpness-aware" update
+    optimizer = SAM(net.parameters(), base_optimizer, lr=0.001, momentum=0.9)
+else:
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+for epoch in range(10):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
+        inputs, labels = inputs.to(device), labels.to(device)
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+        if use_sam:
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)  # use this loss for any training statistics
+            loss.backward()
+            optimizer.first_step(zero_grad=True)
+            
+            # second forward-backward pass
+            outputs = net(inputs)
+            criterion(outputs, labels).backward()  # make sure to do a full forward pass
+            optimizer.second_step(zero_grad=True)
 
-        # forward + backward + optimize
-        outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        else:
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
 
         # print statistics
         running_loss += loss.item()
@@ -59,6 +83,7 @@ total = 0
 with torch.no_grad():
     for data in testloader:
         images, labels = data
+        images, labels = images.to(device), labels.to(device)
         # calculate outputs by running images through the network
         outputs = net(images)
         # the class with the highest energy is what we choose as prediction
@@ -76,6 +101,7 @@ total_pred = {classname: 0 for classname in classes}
 with torch.no_grad():
     for data in testloader:
         images, labels = data
+        images, labels = images.to(device), labels.to(device)
         outputs = net(images)
         _, predictions = torch.max(outputs, 1)
         # collect the correct predictions for each class
