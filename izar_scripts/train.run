@@ -1,0 +1,19 @@
+#!/bin/bash -l
+#SBATCH --job-name=sam
+#SBATCH --nodes=1
+#SBATCH --chdir /home/ckli/OptML-Project
+#SBATCH --mem=300G
+#SBATCH --gres=gpu:1
+#SBATCH --account=vita
+#SBATCH --time=26:00:00
+#SBATCH --cpus-per-task=20
+#SBATCH --output train.out
+
+source ~/.bashrc
+conda activate motion
+
+# Batch experiments
+python torch_official_train.py --batch_size 4 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'sam' --model 'resnet18' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 8 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'sam' --model 'resnet18' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 16 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'sam' --model 'resnet18' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 32 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'sam' --model 'resnet18' --norm_type 'normalize' 
