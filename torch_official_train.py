@@ -77,6 +77,10 @@ class OptMLProj:
                             help='secondary optimizer type used in experiment')
         parser.add_argument('--norm_type', type=str,
                             help='normalization type')
+        parser.add_argument('--lr', type=float,
+                            help='learning rate', default=0.001)
+        parser.add_argument('--momentum', type=float,
+                            help='momentum', default=0.9)
         return parser.parse_args()
 
     def normalize(self):
@@ -102,11 +106,11 @@ class OptMLProj:
         assert self.params.secoptim in ['sam', 'asam', 'none']
         if self.params.secoptim == 'sam':  # TODO: hyperparams of optimizer
             self.optimizer = SAM(self.model.parameters(),
-                                 self.base_optimizer, lr=0.001)
+                                 self.base_optimizer, lr=self.params.lr)
         elif self.params.secoptim == 'asam':
             pass
         elif self.params.secoptim == 'none':
-            self.optimizer = self.base_optimizer
+            self.optimizer = self.base_optimizer(self.model.parameters(), lr=self.params.lr)
 
     def train(self):
         print('Start training session of: ', self.params.comment)
