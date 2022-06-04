@@ -7,6 +7,7 @@ from models import LinearModel, SimpleConv
 from sam.sam import SAM
 import torchvision.models as models
 from argparse import ArgumentParser
+from tqdm import tqdm
 
 # tensorboard
 logged = True
@@ -28,7 +29,10 @@ class OptMLProj:
 
         assert self.params.model in ['resnet18', 'simpleconv', 'simpleconvbn']
         if self.params.model == 'resnet18':
-            self.model = models.resnet18(pretrained=False).to(self.device)
+            if self.params.batchnorm:
+                self.model = models.resnet18(pretrained=False).to(self.device)
+            else:
+                self.model = models.resnet18(pretrained=False, norm_layer=nn.Identity).to(self.device)
         elif self.params.model == 'simpleconv':
             self.model = SimpleConv().to(self.device)
         elif self.params.model == 'simpleconvbn':
@@ -52,8 +56,9 @@ class OptMLProj:
         self.criterion = nn.CrossEntropyLoss()
 
         if self.params.comment == '':
-            self.params.comment = 'bz_{}_seed_{}_epochs[{}]_model_{}_baseoptim[{}]_secoptim[{}]_norm_{}'.format(
-                self.params.batch_size, self.params.seed, self.params.epochs, self.params.model, self.params.baseoptim, self.params.secoptim, self.params.norm_type
+            self.params.comment = 'bz_{}_seed_{}_epochs[{}]_model_{}_baseoptim[{}]_secoptim[{}]_norm_{}_batchnorm_{}'.format(
+                self.params.batch_size, self.params.seed, self.params.epochs, self.params.model, self.params.baseoptim,
+                self.params.secoptim, self.params.norm_type, self.params.batchnorm
             )
         if logged:
             self.writer = SummaryWriter(comment=self.params.comment)
@@ -83,6 +88,12 @@ class OptMLProj:
                             help='weight_decay', default=0.005)
         parser.add_argument('--rho', type=float,
                             help='rho in a/sam', default=0.05)
+        parser.add_argument('--batchnorm', action='store_true',
+                            help="using batchnorm enabled by default")
+        parser.add_argument('--no-batchnorm', dest='batchnorm',
+                            action='store_false', help="disable batchnorm")
+        parser.set_defaults(batchnorm=True)
+
         return parser.parse_args()
 
     def normalize(self):
@@ -108,7 +119,7 @@ class OptMLProj:
         assert self.params.secoptim in ['sam', 'asam', 'none']
         if self.params.secoptim == 'sam':  # TODO: hyperparams of optimizer
             self.optimizer = SAM(self.model.parameters(),
-                                 self.base_optimizer, lr=self.params.lr, weight_decay=self.params.wd, rho=self.params)
+                                 self.base_optimizer, lr=self.params.lr, weight_decay=self.params.wd, rho=self.params.rho)
         elif self.params.secoptim == 'asam':
             pass
         elif self.params.secoptim == 'none':
@@ -117,11 +128,11 @@ class OptMLProj:
     def train(self):
         print('Start training session of: ', self.params.comment)
         # loop over the dataset multiple times
-        for epoch in range(self.params.epochs):
+        for epoch in tqdm(range(self.params.epochs)):
             running_loss = 0.0
             epoch_loss = 0.0
             self.model.train()
-            for i, data in enumerate(self.trainloader, 0):
+            for i, data in tqdm(enumerate(self.trainloader, 0), leave=True):
                 # get the inputs; data is a list of [inputs, labels]
                 inputs, labels = data
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -181,8 +192,6 @@ class OptMLProj:
                 self.writer.add_scalar(
                     'Testing Accuracy', correct / total , epoch)
         print('Finished Training')
-
-        
 
     def test(self):
         # prepare to count predictions for each class
