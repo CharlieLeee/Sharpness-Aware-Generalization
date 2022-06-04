@@ -118,6 +118,7 @@ class OptMLProj:
         for epoch in range(self.params.epochs):
             running_loss = 0.0
             epoch_loss = 0.0
+            self.model.train()
             for i, data in enumerate(self.trainloader, 0):
                 # get the inputs; data is a list of [inputs, labels]
                 inputs, labels = data
@@ -153,32 +154,40 @@ class OptMLProj:
                     print(
                         f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
                     running_loss = 0.0
-            self.writer.add_scalar(
-                'Training loss', epoch_loss/len(self.trainloader), epoch)
+            
+            
+            print('Start testing...')
+            correct = 0
+            total = 0
+            # since we're not training, we don't need to calculate the gradients for our outputs
+            self.model.eval()
+            with torch.no_grad():
+                for data in self.testloader:
+                    images, labels = data
+                    images, labels = images.to(self.device), labels.to(self.device)
+                    # calculate outputs by running images through the network
+                    outputs = self.model(images)
+                    # the class with the highest energy is what we choose as prediction
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+            print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
+            
+            if logged:
+                self.writer.add_scalar(
+                    'Training loss', epoch_loss/len(self.trainloader), epoch)
+                self.writer.add_scalar(
+                    'Testing Accuracy', correct / total , epoch)
         print('Finished Training')
 
-        correct = 0
-        total = 0
-        # since we're not training, we don't need to calculate the gradients for our outputs
-        with torch.no_grad():
-            for data in self.testloader:
-                images, labels = data
-                images, labels = images.to(self.device), labels.to(self.device)
-                # calculate outputs by running images through the network
-                outputs = self.model(images)
-                # the class with the highest energy is what we choose as prediction
-                _, predicted = torch.max(outputs.data, 1)
-                total += self.labels.size(0)
-                correct += (predicted == labels).sum().item()
-
-        print(
-            f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
+        
 
     def test(self):
         # prepare to count predictions for each class
         correct_pred = {classname: 0 for classname in self.classes}
         total_pred = {classname: 0 for classname in self.classes}
 
+        self.model.eval()
         # again no gradients needed
         with torch.no_grad():
             for data in self.testloader:

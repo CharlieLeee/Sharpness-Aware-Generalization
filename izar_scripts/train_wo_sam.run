@@ -13,7 +13,7 @@ source ~/.bashrc
 conda activate motion
 
 # Batch experiments without SAM
-python torch_official_train.py --batch_size 4 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'none' --model 'resnet18' --norm_type 'normalize' 
-python torch_official_train.py --batch_size 8 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'none' --model 'resnet18' --norm_type 'normalize' 
-python torch_official_train.py --batch_size 16 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'none' --model 'resnet18' --norm_type 'normalize' 
-python torch_official_train.py --batch_size 32 --seed 0 --epochs 30 --baseoptim 'sgd' --secoptim 'none' --model 'resnet18' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 4 --seed 10 --epochs 300 --baseoptim 'sgd' --secoptim 'none' --model 'simpleconv' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 8 --seed 10 --epochs 300 --baseoptim 'sgd' --secoptim 'none' --model 'simpleconv' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 16 --seed 10 --epochs 300 --baseoptim 'sgd' --secoptim 'none' --model 'simpleconv' --norm_type 'normalize' 
+python torch_official_train.py --batch_size 32 --seed 10 --epochs 300 --baseoptim 'sgd' --secoptim 'none' --model 'simpleconv' --norm_type 'normalize' 
