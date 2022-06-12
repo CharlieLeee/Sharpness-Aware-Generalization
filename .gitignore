@@ -133,3 +133,4 @@ dmypy.json
 runs/*
 *.out
 old_runs/*
+obs_runs/*

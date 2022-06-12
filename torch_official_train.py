@@ -57,16 +57,10 @@ class OptMLProj:
         self.criterion = nn.CrossEntropyLoss()
 
         if self.params.comment == '':
-<<<<<<< HEAD
-            self.params.comment = 'bz_{}_seed_{}_epochs[{}]_model_{}_baseoptim[{}]_secoptim[{}]_lr_{}_norm_{}_batchnorm_{}'.format(
-                self.params.batch_size, self.params.seed, self.params.epochs, self.params.model, self.params.baseoptim,
-                self.params.secoptim, self.params.lr, self.params.norm_type, self.params.batchnorm
-=======
             self.params.comment = 'bz_{}_seed_{}_epochs[{}]_model_{}_baseoptim[{}]_secoptim[{}]_norm_{}_batchnorm_{}_lr_{}_momentum_{}_rho_{}_cos_{}'.format(
                 self.params.batch_size, self.params.seed, self.params.epochs, self.params.model, self.params.baseoptim,
                 self.params.secoptim, self.params.norm_type, self.params.batchnorm, self.params.lr, self.params.momentum,
                 self.params.rho, self.params.cosaneal
->>>>>>> d23f1c37fd043743b182c08acc0fb62137a3bc20
             )
         if logged:
             self.writer = SummaryWriter(comment=self.params.comment)
