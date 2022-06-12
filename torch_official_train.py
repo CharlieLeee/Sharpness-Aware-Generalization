@@ -8,6 +8,7 @@ from sam.sam import SAM
 import torchvision.models as models
 from argparse import ArgumentParser
 from tqdm import tqdm
+import os
 
 # tensorboard
 logged = True
@@ -56,9 +57,10 @@ class OptMLProj:
         self.criterion = nn.CrossEntropyLoss()
 
         if self.params.comment == '':
-            self.params.comment = 'bz_{}_seed_{}_epochs[{}]_model_{}_baseoptim[{}]_secoptim[{}]_norm_{}_batchnorm_{}'.format(
+            self.params.comment = 'bz_{}_seed_{}_epochs[{}]_model_{}_baseoptim[{}]_secoptim[{}]_norm_{}_batchnorm_{}_lr_{}_momentum_{}_rho_{}_cos_{}'.format(
                 self.params.batch_size, self.params.seed, self.params.epochs, self.params.model, self.params.baseoptim,
-                self.params.secoptim, self.params.norm_type, self.params.batchnorm
+                self.params.secoptim, self.params.norm_type, self.params.batchnorm, self.params.lr, self.params.momentum,
+                self.params.rho, self.params.cosaneal
             )
         if logged:
             self.writer = SummaryWriter(comment=self.params.comment)
@@ -85,7 +87,8 @@ class OptMLProj:
         parser.add_argument('--lr', type=float,
                             help='learning rate', default=0.1)
         parser.add_argument('--wd', type=float,
-                            help='weight_decay', default=0.005)
+                            help='weight_decay', default=0.0005)
+        parser.add_argument('--momentum', type=float, help='momentum', default=0)
         parser.add_argument('--rho', type=float,
                             help='rho in a/sam', default=0.05)
         parser.add_argument('--batchnorm', action='store_true',
@@ -93,6 +96,12 @@ class OptMLProj:
         parser.add_argument('--no-batchnorm', dest='batchnorm',
                             action='store_false', help="disable batchnorm")
         parser.set_defaults(batchnorm=True)
+
+        parser.add_argument('--cosaneal', action='store_true',
+                            help="using batchnorm enabled by default")
+        parser.add_argument('--no-cosaneal', dest='batchnorm',
+                            action='store_false', help="disable batchnorm")
+        parser.set_defaults(cosaneal=False)
 
         return parser.parse_args()
 
@@ -116,14 +125,25 @@ class OptMLProj:
         elif self.params.baseoptim == 'adam':
             self.base_optimizer = torch.optim.Adam
 
+
         assert self.params.secoptim in ['sam', 'asam', 'none']
         if self.params.secoptim == 'sam':  # TODO: hyperparams of optimizer
             self.optimizer = SAM(self.model.parameters(),
-                                 self.base_optimizer, lr=self.params.lr, weight_decay=self.params.wd, rho=self.params.rho)
+                                 self.base_optimizer, lr=self.params.lr, weight_decay=self.params.wd, rho=self.params.rho
+                                 , momentum=self.params.momentum)
         elif self.params.secoptim == 'asam':
-            pass
+            self.optimizer = SAM(self.model.parameters(),
+                                 self.base_optimizer, lr=self.params.lr, weight_decay=self.params.wd, adaptive=True,
+                                 rho=self.params.rho, momentum=self.params.momentum)
         elif self.params.secoptim == 'none':
-            self.optimizer = self.base_optimizer(self.model.parameters(), lr=self.params.lr, weight_decay=self.params.wd)
+            self.optimizer = self.base_optimizer(self.model.parameters(), lr=self.params.lr, weight_decay=self.params.wd,
+                                                 momentum=self.params.momentum)
+        if self.params.cosaneal:
+            print("using cosine scheduler")
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer.base_optimizer, self.params.epochs)
+        else:
+            self.scheduler = None
+
 
     def train(self):
         print('Start training session of: ', self.params.comment)
@@ -167,8 +187,9 @@ class OptMLProj:
                     print(
                         f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
                     running_loss = 0.0
-            
-            
+
+            if self.params.cosaneal:
+                self.scheduler.step()
             print('Start testing...')
             correct = 0
             total = 0
@@ -191,6 +212,7 @@ class OptMLProj:
                     'Training loss', epoch_loss/len(self.trainloader), epoch)
                 self.writer.add_scalar(
                     'Testing Accuracy', correct / total , epoch)
+        self.save()
         print('Finished Training')
 
     def test(self):
@@ -218,7 +240,15 @@ class OptMLProj:
             print(f'Accuracy for class: {classname:5s} is {accuracy:.1f} %')
 
     def save(self):
-        pass
+        scheduler_state_dict = self.scheduler.state_dict() if self.params.cosaneal else None
+        torch.save({
+            'config': self.params,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': scheduler_state_dict},
+            f"{os.getcwd()}/runs/{self.params.comment}.pt"
+        )
+
 
 
 if __name__ == '__main__':
