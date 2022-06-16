@@ -2,12 +2,12 @@
 #SBATCH --job-name=sam_
 #SBATCH --nodes=1
 #SBATCH --chdir /home/ckli/OptML-Project
-#SBATCH --mem=200G
+#SBATCH --mem=80G
 #SBATCH --gres=gpu:1
 #SBATCH --account=vita
 #SBATCH --time=48:00:00
 #SBATCH --cpus-per-task=20
-#SBATCH --output train_paral.out
+#SBATCH --output train_paral2.out
 
 source ~/.bashrc
 conda activate motion

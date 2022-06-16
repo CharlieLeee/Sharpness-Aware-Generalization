@@ -85,7 +85,7 @@ class OptMLProj:
         parser.add_argument('--norm_type', type=str,
                             help='normalization type')
         parser.add_argument('--lr', type=float,
-                            help='learning rate', default=0.1)
+                            help='learning rate', default=0.01)
         parser.add_argument('--wd', type=float,
                             help='weight_decay', default=0.0005)
         parser.add_argument('--momentum', type=float, help='momentum', default=0)
