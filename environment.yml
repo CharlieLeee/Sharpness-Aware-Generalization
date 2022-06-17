@@ -1,0 +1,12 @@
+name: OptML-Project
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - jupyter
+  - seaborn
+  - torchvision
+  - torchaudio
+  - pytorch
+  - cudatoolkit=11.3
+prefix: /home/pc/anaconda3/envs/OptML-Project
