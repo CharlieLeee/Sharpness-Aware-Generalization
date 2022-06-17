@@ -17,9 +17,13 @@ In order to replicate the experiments in the paper, the folders `local_scripts` 
 In order to recreate the plots used in the paper, the file `Notebooks/Generate plot in the report.ipynb` is used. 
 
 ## File structure
+
 `izar_scripts` contains the scripts for experiment 1 and 2.
+
 `local_scripts/` contain scripts to run the ASAM vs SAM comparison in experiment C.
+
 `run.py` contains the code to run the experiments.
+
 `Notebooks` contains the experiment data, and the notebook to generate the plots used in the paper.
 
 ## Resources
