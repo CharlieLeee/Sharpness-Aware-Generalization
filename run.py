@@ -140,7 +140,12 @@ class OptMLProj:
                                                  momentum=self.params.momentum)
         if self.params.cosaneal:
             print("using cosine scheduler")
-            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer.base_optimizer, self.params.epochs)
+            if self.params.secoptim == 'none':
+                self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,
+                                                                            self.params.epochs)
+            else:
+                self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer.base_optimizer,
+                                                                            self.params.epochs)
         else:
             self.scheduler = None
 
