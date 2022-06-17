@@ -1,10 +1,13 @@
 # OptML-Project
+Repository containing the accompanying code to our optimization for machine learning paper "Model Generalization: A Sharpness Aware Optimization Perspective" 
+
 ## How to use this code
-Clone the repo
+Clone the repository
 ```
 git clone --recurse-submodules https://github.com/CharlieLeee/OptML-Project.git
 ```
-Set up the anaconda environment:
+
+Set up the anaconda environment with:
 ```
 conda env create -n OptMLProject --file environment.yml
 ```
